@@ -22,7 +22,6 @@ describeDb('EventStoreRepo', () => {
   });
 
   afterAll(async () => {
-    await pool.end();
   });
 
   beforeEach(() => {

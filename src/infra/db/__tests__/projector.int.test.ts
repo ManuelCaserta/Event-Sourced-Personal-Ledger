@@ -17,6 +17,7 @@ describeDb('Projector', () => {
   let userId: string;
   let accountId: string;
   let testUserId: string;
+  const testEmail = `vitest-projector-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     // Ensure database is ready
@@ -25,7 +26,7 @@ describeDb('Projector', () => {
     // Create a test user
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      ['projector-test@example.com', 'hash']
+      [testEmail, 'hash']
     );
     testUserId = userResult.rows[0].id;
   });
@@ -35,7 +36,6 @@ describeDb('Projector', () => {
     await pool.query('DELETE FROM read_movements WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM read_accounts WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    await pool.end();
   });
 
   beforeEach(() => {
@@ -86,7 +86,7 @@ describeDb('Projector', () => {
         expect(result.rows[0].name).toBe('Test Account');
         expect(result.rows[0].currency).toBe('USD');
         expect(result.rows[0].allow_negative).toBe(false);
-        expect(result.rows[0].balance_cents).toBe(0);
+        expect(Number(result.rows[0].balance_cents)).toBe(0);
       } finally {
         client.release();
       }
@@ -148,7 +148,7 @@ describeDb('Projector', () => {
           'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
           [accountId]
         );
-        expect(accountResult.rows[0].balance_cents).toBe(1000);
+        expect(Number(accountResult.rows[0].balance_cents)).toBe(1000);
 
         // Check movement
         const movementResult = await pool.query(
@@ -157,7 +157,7 @@ describeDb('Projector', () => {
         );
         expect(movementResult.rows).toHaveLength(1);
         expect(movementResult.rows[0].kind).toBe('income');
-        expect(movementResult.rows[0].amount_cents).toBe(1000);
+        expect(Number(movementResult.rows[0].amount_cents)).toBe(1000);
         expect(movementResult.rows[0].description).toBe('Salary');
       } finally {
         client.release();
@@ -239,7 +239,7 @@ describeDb('Projector', () => {
           'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
           [accountId]
         );
-        expect(accountResult.rows[0].balance_cents).toBe(1500);
+        expect(Number(accountResult.rows[0].balance_cents)).toBe(1500);
 
         // Check movements
         const movementResult = await pool.query(
@@ -248,7 +248,7 @@ describeDb('Projector', () => {
         );
         expect(movementResult.rows).toHaveLength(2);
         expect(movementResult.rows[1].kind).toBe('expense');
-        expect(movementResult.rows[1].amount_cents).toBe(500);
+        expect(Number(movementResult.rows[1].amount_cents)).toBe(500);
       } finally {
         client.release();
       }
@@ -333,7 +333,7 @@ describeDb('Projector', () => {
           'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
           [accountId]
         );
-        expect(accountResult.rows[0].balance_cents).toBe(700);
+        expect(Number(accountResult.rows[0].balance_cents)).toBe(700);
 
         // Check movement
         const movementResult = await pool.query(
@@ -342,7 +342,7 @@ describeDb('Projector', () => {
         );
         expect(movementResult.rows).toHaveLength(1);
         expect(movementResult.rows[0].transfer_id).toBe(transferId);
-        expect(movementResult.rows[0].amount_cents).toBe(300);
+        expect(Number(movementResult.rows[0].amount_cents)).toBe(300);
       } finally {
         client.release();
       }
@@ -406,7 +406,7 @@ describeDb('Projector', () => {
           'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
           [accountId]
         );
-        expect(accountResult.rows[0].balance_cents).toBe(500);
+        expect(Number(accountResult.rows[0].balance_cents)).toBe(500);
 
         // Check movement
         const movementResult = await pool.query(

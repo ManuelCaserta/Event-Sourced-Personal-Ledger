@@ -20,13 +20,14 @@ describeDb('RecordExpenseUseCase', () => {
   let userId: string;
   let accountId: string;
   let testUserId: string;
+  const testEmail = `vitest-recordExpense-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     await pool.query('SELECT 1');
 
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      ['record-expense-test@example.com', 'hash']
+      [testEmail, 'hash']
     );
     testUserId = userResult.rows[0].id;
   });
@@ -37,7 +38,6 @@ describeDb('RecordExpenseUseCase', () => {
     await pool.query('DELETE FROM events WHERE aggregate_id IN (SELECT account_id FROM read_accounts WHERE user_id = $1)', [testUserId]);
     await pool.query('DELETE FROM command_dedup WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    await pool.end();
   });
 
   beforeEach(async () => {
@@ -91,7 +91,7 @@ describeDb('RecordExpenseUseCase', () => {
       'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
       [accountId]
     );
-    expect(accountResult.rows[0].balance_cents).toBe(700);
+    expect(Number(accountResult.rows[0].balance_cents)).toBe(700);
   });
 
   it('should throw InsufficientBalanceError when allowNegative=false', async () => {
@@ -190,7 +190,7 @@ describeDb('RecordExpenseUseCase', () => {
       [accountId]
     );
     expect(movementResult.rows).toHaveLength(1);
-    expect(movementResult.rows[0].amount_cents).toBe(300);
+    expect(Number(movementResult.rows[0].amount_cents)).toBe(300);
   });
 });
 

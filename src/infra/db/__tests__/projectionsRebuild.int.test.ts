@@ -18,6 +18,7 @@ describeDb('Projections Rebuild', () => {
   let testUserId: string;
   let eventStore: EventStoreRepo;
   let projector: Projector;
+  const testEmail = `vitest-rebuild-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     await pool.query('SELECT 1');
@@ -25,7 +26,7 @@ describeDb('Projections Rebuild', () => {
     // Create test user
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      ['rebuild-test@example.com', 'hash']
+      [testEmail, 'hash']
     );
     testUserId = userResult.rows[0].id;
 
@@ -41,7 +42,6 @@ describeDb('Projections Rebuild', () => {
       accountId2,
     ]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    await pool.end();
   });
 
   beforeEach(() => {

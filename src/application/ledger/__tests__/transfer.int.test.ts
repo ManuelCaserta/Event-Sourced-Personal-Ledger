@@ -22,13 +22,14 @@ describeDb('TransferUseCase', () => {
   let fromAccountId: string;
   let toAccountId: string;
   let testUserId: string;
+  const testEmail = `vitest-transfer-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     await pool.query('SELECT 1');
 
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      ['transfer-test@example.com', 'hash']
+      [testEmail, 'hash']
     );
     testUserId = userResult.rows[0].id;
   });
@@ -39,7 +40,6 @@ describeDb('TransferUseCase', () => {
     await pool.query('DELETE FROM events WHERE aggregate_id IN (SELECT account_id FROM read_accounts WHERE user_id = $1)', [testUserId]);
     await pool.query('DELETE FROM command_dedup WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    await pool.end();
   });
 
   beforeEach(async () => {
@@ -115,13 +115,13 @@ describeDb('TransferUseCase', () => {
       'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
       [fromAccountId]
     );
-    expect(fromAccountResult.rows[0].balance_cents).toBe(700);
+    expect(Number(fromAccountResult.rows[0].balance_cents)).toBe(700);
 
     const toAccountResult = await pool.query(
       'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
       [toAccountId]
     );
-    expect(toAccountResult.rows[0].balance_cents).toBe(300);
+    expect(Number(toAccountResult.rows[0].balance_cents)).toBe(300);
 
     // Verify movements were created
     const fromMovements = await pool.query(
@@ -129,14 +129,14 @@ describeDb('TransferUseCase', () => {
       [fromAccountId]
     );
     expect(fromMovements.rows).toHaveLength(1);
-    expect(fromMovements.rows[0].amount_cents).toBe(300);
+    expect(Number(fromMovements.rows[0].amount_cents)).toBe(300);
 
     const toMovements = await pool.query(
       "SELECT * FROM read_movements WHERE account_id = $1 AND kind = 'transfer_in'",
       [toAccountId]
     );
     expect(toMovements.rows).toHaveLength(1);
-    expect(toMovements.rows[0].amount_cents).toBe(300);
+    expect(Number(toMovements.rows[0].amount_cents)).toBe(300);
     expect(toMovements.rows[0].transfer_id).toBe(fromMovements.rows[0].transfer_id);
   });
 
@@ -227,7 +227,7 @@ describeDb('TransferUseCase', () => {
       [fromAccountId]
     );
     expect(fromMovements.rows).toHaveLength(1);
-    expect(fromMovements.rows[0].amount_cents).toBe(300);
+    expect(Number(fromMovements.rows[0].amount_cents)).toBe(300);
   });
 
   it('should throw error for non-existent source account', async () => {

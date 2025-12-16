@@ -14,6 +14,7 @@ describeDb('CreateAccountUseCase', () => {
   let commandDedup: CommandDedupRepo;
   let userId: string;
   let testUserId: string;
+  const testEmail = `vitest-createAccount-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     await pool.query('SELECT 1');
@@ -21,7 +22,7 @@ describeDb('CreateAccountUseCase', () => {
     // Create test user
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      ['create-account-test@example.com', 'hash']
+      [testEmail, 'hash']
     );
     testUserId = userResult.rows[0].id;
   });
@@ -31,7 +32,6 @@ describeDb('CreateAccountUseCase', () => {
     await pool.query('DELETE FROM events WHERE aggregate_id IN (SELECT account_id FROM read_accounts WHERE user_id = $1)', [testUserId]);
     await pool.query('DELETE FROM command_dedup WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-    await pool.end();
   });
 
   beforeEach(() => {
@@ -78,7 +78,7 @@ describeDb('CreateAccountUseCase', () => {
     expect(accountResult.rows[0].name).toBe('Test Account');
     expect(accountResult.rows[0].currency).toBe('USD');
     expect(accountResult.rows[0].allow_negative).toBe(false);
-    expect(accountResult.rows[0].balance_cents).toBe(0);
+    expect(Number(accountResult.rows[0].balance_cents)).toBe(0);
 
     // Verify event was stored
     const events = await eventStore.loadStream('account', result.accountId);

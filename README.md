@@ -1,5 +1,7 @@
 # Event-Sourced Personal Ledger
 
+[![CI](https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger/actions/workflows/ci.yml)
+
 A modular monolith implementing an event-sourced personal ledger system.
 
 ## Architecture

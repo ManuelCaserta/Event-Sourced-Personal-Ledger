@@ -15,6 +15,133 @@ import { randomUUID } from 'crypto';
 
 /**
  * @openapi
+ * /api/accounts:
+ *   post:
+ *     tags: [Accounts]
+ *     summary: Create an account
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, currency, allowNegative]
+ *             properties:
+ *               name: { type: string, example: "Checking" }
+ *               currency: { type: string, example: "USD" }
+ *               allowNegative: { type: boolean, example: false }
+ *     responses:
+ *       201:
+ *         description: Created
+ *       400:
+ *         description: Validation or domain error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       409:
+ *         description: Conflict (idempotency or concurrency)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
+ *   get:
+ *     tags: [Accounts]
+ *     summary: List accounts
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: OK
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
+ * /api/accounts/{id}:
+ *   get:
+ *     tags: [Accounts]
+ *     summary: Get account details
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: OK
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
+ * /api/accounts/{id}/movements:
+ *   get:
+ *     tags: [Movements]
+ *     summary: Get account movements (paginated)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema: { type: integer, example: 50 }
+ *       - in: query
+ *         name: cursor
+ *         required: false
+ *         schema: { type: integer, example: 123 }
+ *     responses:
+ *       200:
+ *         description: OK
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
+ * /api/accounts/{id}/movements.csv:
+ *   get:
+ *     tags: [Movements]
+ *     summary: Export account movements as CSV
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: CSV file
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
  * /api/accounts/{id}/income:
  *   post:
  *     tags: [Transactions]

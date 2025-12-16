@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Ledger Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .section {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .accounts-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .account-card {
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    .account-card h3 {
+      margin-bottom: 10px;
+    }
+    .balance {
+      font-size: 24px;
+      font-weight: bold;
+      color: #28a745;
+      margin: 10px 0;
+    }
+    .balance.negative {
+      color: #dc3545;
+    }
+    .movements-list {
+      margin-top: 15px;
+    }
+    .movement {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+    }
+    .movement.income { background: #d4edda; }
+    .movement.expense { background: #f8d7da; }
+    .movement.transfer_in { background: #d1ecf1; }
+    .movement.transfer_out { background: #fff3cd; }
+    .error {
+      color: #dc3545;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8d7da;
+      border-radius: 3px;
+    }
+    .success {
+      color: #28a745;
+      margin-top: 10px;
+      padding: 10px;
+      background: #d4edda;
+      border-radius: 3px;
+    }
+    .hidden {
+      display: none;
+    }
+    #loginSection {
+      text-align: center;
+      max-width: 400px;
+      margin: 50px auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="loginSection" class="section">
+    <h1>Personal Ledger</h1>
+    <div class="form-group">
+      <label>Email:</label>
+      <input type="email" id="email" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label>Password:</label>
+      <input type="password" id="password" placeholder="password">
+    </div>
+    <button onclick="login()">Login</button>
+    <button onclick="register()" style="background: #28a745; margin-left: 10px;">Register</button>
+    <div id="authError" class="error hidden"></div>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <h1>Personal Ledger Dashboard</h1>
+
+    <div class="section">
+      <h2>Create Account</h2>
+      <div class="form-group">
+        <label>Name:</label>
+        <input type="text" id="accountName" placeholder="Checking Account">
+      </div>
+      <div class="form-group">
+        <label>Currency:</label>
+        <select id="accountCurrency">
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="allowNegative"> Allow negative balance
+        </label>
+      </div>
+      <button onclick="createAccount()">Create Account</button>
+      <div id="accountError" class="error hidden"></div>
+      <div id="accountSuccess" class="success hidden"></div>
+    </div>
+
+    <div class="section">
+      <h2>Accounts</h2>
+      <div id="accountsList" class="accounts-list"></div>
+    </div>
+
+    <div class="section">
+      <h2>Record Transaction</h2>
+      <div class="form-group">
+        <label>Account:</label>
+        <select id="transactionAccount"></select>
+      </div>
+      <div class="form-group">
+        <label>Type:</label>
+        <select id="transactionType">
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount (cents):</label>
+        <input type="number" id="transactionAmount" placeholder="1000">
+      </div>
+      <div class="form-group">
+        <label>Description:</label>
+        <input type="text" id="transactionDescription" placeholder="Salary">
+      </div>
+      <button onclick="recordTransaction()">Record</button>
+      <div id="transactionError" class="error hidden"></div>
+      <div id="transactionSuccess" class="success hidden"></div>
+    </div>
+
+    <div class="section">
+      <h2>Transfer</h2>
+      <div class="form-group">
+        <label>From Account:</label>
+        <select id="transferFrom"></select>
+      </div>
+      <div class="form-group">
+        <label>To Account:</label>
+        <select id="transferTo"></select>
+      </div>
+      <div class="form-group">
+        <label>Amount (cents):</label>
+        <input type="number" id="transferAmount" placeholder="500">
+      </div>
+      <div class="form-group">
+        <label>Description:</label>
+        <input type="text" id="transferDescription" placeholder="Transfer to savings">
+      </div>
+      <button onclick="transfer()">Transfer</button>
+      <div id="transferError" class="error hidden"></div>
+      <div id="transferSuccess" class="success hidden"></div>
+    </div>
+
+    <div class="section">
+      <h2>Movements</h2>
+      <div class="form-group">
+        <label>Account:</label>
+        <select id="movementsAccount"></select>
+      </div>
+      <button onclick="loadMovements()">Load Movements</button>
+      <button onclick="exportCSV()" style="background: #28a745; margin-left: 10px;">Export CSV</button>
+      <div id="movementsList" class="movements-list"></div>
+    </div>
+
+    <div class="section">
+      <button onclick="logout()" style="background: #dc3545;">Logout</button>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('token');
+    let accounts = [];
+
+    if (token) {
+      showDashboard();
+    }
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('authError');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Login failed');
+        }
+
+        const data = await res.json();
+        token = data.token;
+        localStorage.setItem('token', token);
+        errorDiv.classList.add('hidden');
+        showDashboard();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('authError');
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Registration failed');
+        }
+
+        await login();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem('token');
+      document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      loadAccounts();
+    }
+
+    async function loadAccounts() {
+      try {
+        const res = await fetch('/api/accounts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        accounts = await res.json();
+        renderAccounts();
+        updateAccountSelects();
+      } catch (err) {
+        console.error('Failed to load accounts:', err);
+      }
+    }
+
+    function renderAccounts() {
+      const list = document.getElementById('accountsList');
+      list.innerHTML = accounts.map(acc => `
+        <div class="account-card">
+          <h3>${acc.name}</h3>
+          <div>${acc.currency}</div>
+          <div class="balance ${acc.balanceCents < 0 ? 'negative' : ''}">
+            ${(acc.balanceCents / 100).toFixed(2)} ${acc.currency}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateAccountSelects() {
+      const selects = ['transactionAccount', 'transferFrom', 'transferTo', 'movementsAccount'];
+      selects.forEach(id => {
+        const select = document.getElementById(id);
+        select.innerHTML = accounts.map(acc => 
+          `<option value="${acc.accountId}">${acc.name} (${acc.currency})</option>`
+        ).join('');
+      });
+    }
+
+    async function createAccount() {
+      const name = document.getElementById('accountName').value;
+      const currency = document.getElementById('accountCurrency').value;
+      const allowNegative = document.getElementById('allowNegative').checked;
+      const errorDiv = document.getElementById('accountError');
+      const successDiv = document.getElementById('accountSuccess');
+
+      try {
+        const res = await fetch('/api/accounts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, currency, allowNegative })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to create account');
+        }
+
+        successDiv.textContent = 'Account created successfully';
+        successDiv.classList.remove('hidden');
+        errorDiv.classList.add('hidden');
+        document.getElementById('accountName').value = '';
+        loadAccounts();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+        successDiv.classList.add('hidden');
+      }
+    }
+
+    async function recordTransaction() {
+      const accountId = document.getElementById('transactionAccount').value;
+      const type = document.getElementById('transactionType').value;
+      const amountCents = parseInt(document.getElementById('transactionAmount').value);
+      const description = document.getElementById('transactionDescription').value;
+      const errorDiv = document.getElementById('transactionError');
+      const successDiv = document.getElementById('transactionSuccess');
+
+      try {
+        const endpoint = type === 'income' ? 'income' : 'expense';
+        const res = await fetch(`/api/accounts/${accountId}/${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amountCents,
+            occurredAt: new Date().toISOString(),
+            description
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to record transaction');
+        }
+
+        successDiv.textContent = 'Transaction recorded successfully';
+        successDiv.classList.remove('hidden');
+        errorDiv.classList.add('hidden');
+        document.getElementById('transactionAmount').value = '';
+        document.getElementById('transactionDescription').value = '';
+        loadAccounts();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+        successDiv.classList.add('hidden');
+      }
+    }
+
+    async function transfer() {
+      const fromAccountId = document.getElementById('transferFrom').value;
+      const toAccountId = document.getElementById('transferTo').value;
+      const amountCents = parseInt(document.getElementById('transferAmount').value);
+      const description = document.getElementById('transferDescription').value;
+      const errorDiv = document.getElementById('transferError');
+      const successDiv = document.getElementById('transferSuccess');
+
+      try {
+        const res = await fetch('/api/transfers', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fromAccountId,
+            toAccountId,
+            amountCents,
+            occurredAt: new Date().toISOString(),
+            description
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to transfer');
+        }
+
+        successDiv.textContent = 'Transfer completed successfully';
+        successDiv.classList.remove('hidden');
+        errorDiv.classList.add('hidden');
+        document.getElementById('transferAmount').value = '';
+        document.getElementById('transferDescription').value = '';
+        loadAccounts();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.classList.remove('hidden');
+        successDiv.classList.add('hidden');
+      }
+    }
+
+    async function loadMovements() {
+      const accountId = document.getElementById('movementsAccount').value;
+      const list = document.getElementById('movementsList');
+
+      try {
+        const res = await fetch(`/api/accounts/${accountId}/movements`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        list.innerHTML = data.movements.map(m => `
+          <div class="movement ${m.kind}">
+            <div>
+              <strong>${m.kind}</strong> - ${m.description || 'No description'}
+              <br><small>${new Date(m.occurredAt).toLocaleString()}</small>
+            </div>
+            <div>${(m.amountCents / 100).toFixed(2)}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        list.innerHTML = `<div class="error">Failed to load movements: ${err.message}</div>`;
+      }
+    }
+
+    async function exportCSV() {
+      const accountId = document.getElementById('movementsAccount').value;
+      const link = document.createElement('a');
+      link.href = `/api/accounts/${accountId}/movements.csv`;
+      link.download = `movements-${Date.now()}.csv`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      // Create a temporary fetch to trigger download with auth header
+      const res = await fetch(`/api/accounts/${accountId}/movements.csv`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      link.href = url;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
+

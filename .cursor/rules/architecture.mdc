@@ -1,0 +1,44 @@
+# Architecture Guardrails
+
+## Dependency Rules
+
+- **Domain layer** (`src/domain/`) MUST NOT import from:
+  - `src/application/`
+  - `src/infra/`
+  - Any I/O libraries (Express, pg, fs, etc.)
+
+- **Application layer** (`src/application/`) MUST NOT import from:
+  - `src/infra/http/`
+  - Can import from `src/infra/db/` (repositories only)
+
+- **Infrastructure layer** (`src/infra/`) can import from:
+  - `src/application/` (use cases)
+  - `src/domain/` (domain types)
+
+## Domain Layer Rules
+
+- **NO I/O operations** in domain layer
+- Domain is pure business logic only
+- Domain errors extend `DomainError` base class
+- Do NOT modify domain code unless tests are broken
+
+## Change Guidelines
+
+- **Small patches only** - no massive rewrites
+- Use targeted diffs/patches, not full file rewrites
+- Use Composer on single files when possible
+- Do NOT introduce new features unless explicitly requested
+- Do NOT add new dependencies "for convenience"
+- Do NOT change application code beyond what's required by current task
+
+## DevOps Rules
+
+- Do NOT introduce new DevOps tools
+- Do NOT modify CI/CD configuration unless explicitly requested
+- Keep existing tooling (npm scripts, docker-compose, etc.)
+
+## When in Doubt
+
+- If ambiguities emerge: **STOP and ASK** before proceeding
+- Prefer conservative, minimal changes
+- Maintain existing patterns and conventions

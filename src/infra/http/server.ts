@@ -8,6 +8,7 @@ import { createLedgerRoutes } from './routes/ledger.js';
 import { createSwaggerRoutes } from './routes/swagger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { apiRateLimiter } from './middleware/rateLimit.js';
+import { pool } from '../db/pool.js';
 
 dotenv.config();
 
@@ -16,10 +17,22 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'test' ? 'test-secret' : undefined);
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      const id = setTimeout(() => {
+        clearTimeout(id);
+        reject(new Error('timeout'));
+      }, ms);
+    }),
+  ]);
 }
 
 // Middleware
@@ -30,8 +43,13 @@ app.use(apiRateLimiter);
 app.use(express.static(join(__dirname, '../../web/public')));
 
 // Health check endpoint (no auth required)
-app.get('/healthz', (_req, res) => {
-  res.status(200).json({ status: 'ok' });
+app.get('/healthz', async (_req, res) => {
+  try {
+    await withTimeout(pool.query('SELECT 1'), 2000);
+    res.status(200).json({ status: 'ok' });
+  } catch {
+    res.status(500).json({ code: 'DB_UNAVAILABLE', message: 'Database unavailable' });
+  }
 });
 
 // Swagger/OpenAPI docs
@@ -47,10 +65,13 @@ app.use('/api', createLedgerRoutes(JWT_SECRET));
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/healthz`);
-});
+const isTest = process.env.NODE_ENV === 'test' || !!process.env.VITEST;
+if (!isTest) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/healthz`);
+  });
+}
 
 export default app;
 

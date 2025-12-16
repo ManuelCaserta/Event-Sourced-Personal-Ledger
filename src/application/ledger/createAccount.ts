@@ -3,6 +3,7 @@ import { AccountCreated } from '../../domain/ledger/events.js';
 import { EventStoreRepo, EventMetadata } from '../../infra/db/eventStoreRepo.js';
 import { CommandDedupRepo } from '../../infra/db/commandDedupRepo.js';
 import { randomUUID } from 'crypto';
+import { ConflictError } from '../errors.js';
 
 export interface CreateAccountCommand {
   userId: string;
@@ -34,7 +35,7 @@ export class CreateAccountUseCase {
       // For duplicate, we need to find the account that was created
       // In a real system, you might store the result in command_dedup
       // For now, we'll throw an error indicating it's a duplicate
-      throw new Error(
+      throw new ConflictError(
         `Command already executed with correlationId: ${dedupResult.correlationId}`
       );
     }

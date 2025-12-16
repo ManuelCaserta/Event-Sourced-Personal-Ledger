@@ -1,18 +1,24 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import app from '../server.js';
 import { pool } from '../../db/pool.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-describe('E2E: Full Ledger Flow', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('E2E: Full Ledger Flow', () => {
+  let app: any;
   let token: string;
   let userId: string;
   let accountId1: string;
   let accountId2: string;
 
   beforeAll(async () => {
+    // Lazy import to avoid requiring JWT_SECRET when this suite is skipped.
+    const mod = await import('../server.js');
+    app = mod.default;
+
     await pool.query('SELECT 1');
   });
 

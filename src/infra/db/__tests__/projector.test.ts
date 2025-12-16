@@ -10,7 +10,9 @@ import {
 } from '../../../domain/ledger/events.js';
 import { randomUUID } from 'crypto';
 
-describe('Projector', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('Projector', () => {
   const projector = new Projector();
   let userId: string;
   let accountId: string;

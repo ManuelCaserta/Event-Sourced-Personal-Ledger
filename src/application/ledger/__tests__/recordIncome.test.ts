@@ -6,8 +6,11 @@ import { Projector } from '../../../infra/db/projector.js';
 import { CreateAccountUseCase } from '../createAccount.js';
 import { RecordIncomeUseCase } from '../recordIncome.js';
 import { randomUUID } from 'crypto';
+import { NotFoundError } from '../../errors.js';
 
-describe('RecordIncomeUseCase', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('RecordIncomeUseCase', () => {
   let createAccountUseCase: CreateAccountUseCase;
   let useCase: RecordIncomeUseCase;
   let eventStore: EventStoreRepo;
@@ -158,7 +161,7 @@ describe('RecordIncomeUseCase', () => {
         occurredAt: new Date(),
         idempotencyKey: randomUUID(),
       })
-    ).rejects.toThrow('Account not found');
+    ).rejects.toThrow(NotFoundError);
   });
 });
 

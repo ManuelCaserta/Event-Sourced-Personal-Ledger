@@ -4,6 +4,7 @@ import { EventStoreRepo, EventMetadata } from '../../infra/db/eventStoreRepo.js'
 import { CommandDedupRepo } from '../../infra/db/commandDedupRepo.js';
 import { CurrencyMismatchError } from '../../domain/ledger/errors.js';
 import { randomUUID } from 'crypto';
+import { NotFoundError } from '../errors.js';
 
 export interface TransferCommand {
   userId: string;
@@ -40,7 +41,7 @@ export class TransferUseCase {
       const toEvents = await this.eventStore.loadStream('account', command.toAccountId);
 
       if (fromEvents.length === 0 || toEvents.length === 0) {
-        throw new Error('Account not found');
+        throw new NotFoundError('Account not found');
       }
 
       const fromAccount = Account.fromEvents(
@@ -66,10 +67,10 @@ export class TransferUseCase {
     const toEvents = await this.eventStore.loadStream('account', command.toAccountId);
 
     if (fromEvents.length === 0) {
-      throw new Error(`Source account not found: ${command.fromAccountId}`);
+      throw new NotFoundError(`Source account not found: ${command.fromAccountId}`);
     }
     if (toEvents.length === 0) {
-      throw new Error(`Destination account not found: ${command.toAccountId}`);
+      throw new NotFoundError(`Destination account not found: ${command.toAccountId}`);
     }
 
     const fromAccount = Account.fromEvents(
@@ -125,23 +126,23 @@ export class TransferUseCase {
     };
 
     // We need to append to both streams in a transaction
-    // For now, we'll append sequentially (both in same transaction via EventStoreRepo)
-    // In production, you might want a more sophisticated approach
-    await this.eventStore.append(
-      'account',
-      command.fromAccountId,
-      [sentEvent],
-      fromVersion,
-      metadata
-    );
-
-    await this.eventStore.append(
-      'account',
-      command.toAccountId,
-      [receivedEvent],
-      toVersion,
-      metadata
-    );
+    // Use appendMultiple() to guarantee cross-aggregate atomicity (single DB transaction).
+    await this.eventStore.appendMultiple([
+      {
+        aggregateType: 'account',
+        aggregateId: command.fromAccountId,
+        events: [sentEvent],
+        expectedVersion: fromVersion,
+        metadata,
+      },
+      {
+        aggregateType: 'account',
+        aggregateId: command.toAccountId,
+        events: [receivedEvent],
+        expectedVersion: toVersion,
+        metadata,
+      },
+    ]);
 
     const fromFinalState = fromAccount.getState();
     const toFinalState = toAccount.getState();

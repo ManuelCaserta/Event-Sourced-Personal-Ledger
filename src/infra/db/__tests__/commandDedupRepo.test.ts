@@ -3,7 +3,9 @@ import { pool } from '../pool.js';
 import { CommandDedupRepo } from '../commandDedupRepo.js';
 import { randomUUID } from 'crypto';
 
-describe('CommandDedupRepo', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('CommandDedupRepo', () => {
   const repo = new CommandDedupRepo();
   let userId: string;
   let testUserId: string;

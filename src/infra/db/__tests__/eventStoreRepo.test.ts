@@ -8,9 +8,12 @@ import {
 } from '../../../domain/ledger/events.js';
 import { randomUUID } from 'crypto';
 
-describe('EventStoreRepo', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('EventStoreRepo', () => {
   const repo = new EventStoreRepo();
   let aggregateId: string;
+  let aggregateId2: string | null;
   let userId: string;
 
   beforeAll(async () => {
@@ -24,6 +27,7 @@ describe('EventStoreRepo', () => {
 
   beforeEach(() => {
     aggregateId = randomUUID();
+    aggregateId2 = null;
     userId = randomUUID();
   });
 
@@ -32,6 +36,9 @@ describe('EventStoreRepo', () => {
     await pool.query('DELETE FROM events WHERE aggregate_id = $1', [
       aggregateId,
     ]);
+    if (aggregateId2) {
+      await pool.query('DELETE FROM events WHERE aggregate_id = $1', [aggregateId2]);
+    }
   });
 
   describe('loadStream', () => {
@@ -275,6 +282,59 @@ describe('EventStoreRepo', () => {
       expect(stored[0].payload).toMatchObject(event);
       expect(stored[0].metadata).toMatchObject(metadata);
       expect(stored[0].occurredAt).toEqual(event.occurredAt);
+    });
+  });
+
+  describe('appendMultiple', () => {
+    it('should rollback all appends if any append fails (atomic cross-stream)', async () => {
+      aggregateId2 = randomUUID();
+
+      const metadata = {
+        userId,
+        correlationId: randomUUID(),
+      };
+
+      const event1: AccountCreated = {
+        type: 'AccountCreated',
+        eventVersion: 1,
+        name: 'A1',
+        currency: 'USD',
+        allowNegative: false,
+      };
+
+      const event2: AccountCreated = {
+        type: 'AccountCreated',
+        eventVersion: 1,
+        name: 'A2',
+        currency: 'USD',
+        allowNegative: false,
+      };
+
+      // Second append intentionally fails: new stream has actualVersion = -1, expectedVersion = 0
+      await expect(
+        repo.appendMultiple([
+          {
+            aggregateType: 'account',
+            aggregateId,
+            events: [event1],
+            expectedVersion: -1,
+            metadata,
+          },
+          {
+            aggregateType: 'account',
+            aggregateId: aggregateId2,
+            events: [event2],
+            expectedVersion: 0,
+            metadata,
+          },
+        ])
+      ).rejects.toThrow(ConcurrencyError);
+
+      // If atomic, the first stream must also have no events.
+      const loaded1 = await repo.loadStream('account', aggregateId);
+      const loaded2 = await repo.loadStream('account', aggregateId2);
+      expect(loaded1).toHaveLength(0);
+      expect(loaded2).toHaveLength(0);
     });
   });
 });

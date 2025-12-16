@@ -6,7 +6,9 @@ import { Projector } from '../../../infra/db/projector.js';
 import { CreateAccountUseCase } from '../createAccount.js';
 import { randomUUID } from 'crypto';
 
-describe('CreateAccountUseCase', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('CreateAccountUseCase', () => {
   let useCase: CreateAccountUseCase;
   let eventStore: EventStoreRepo;
   let commandDedup: CommandDedupRepo;

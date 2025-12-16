@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
+import type { ErrorResponse } from './errorHandler.js';
 
 export interface ValidationSchemas {
   body?: ZodSchema;
@@ -26,13 +27,17 @@ export function validate(schemas: ValidationSchemas) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        res.status(400).json({
-          error: 'Validation failed',
-          details: error.errors.map((e) => ({
-            path: e.path.join('.'),
-            message: e.message,
-          })),
-        });
+        const body: ErrorResponse = {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: {
+            issues: error.errors.map((e) => ({
+              path: e.path.join('.'),
+              message: e.message,
+            })),
+          },
+        };
+        res.status(400).json(body);
         return;
       }
       next(error);

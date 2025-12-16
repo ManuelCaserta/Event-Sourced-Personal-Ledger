@@ -9,7 +9,9 @@ import { RecordExpenseUseCase } from '../recordExpense.js';
 import { InsufficientBalanceError } from '../../../domain/ledger/errors.js';
 import { randomUUID } from 'crypto';
 
-describe('RecordExpenseUseCase', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('RecordExpenseUseCase', () => {
   let createAccountUseCase: CreateAccountUseCase;
   let recordIncomeUseCase: RecordIncomeUseCase;
   let useCase: RecordExpenseUseCase;

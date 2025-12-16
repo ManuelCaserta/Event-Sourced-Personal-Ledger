@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import type { ErrorResponse } from './errorHandler.js';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -16,7 +17,11 @@ export function authMiddleware(jwtSecret: string) {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Missing or invalid authorization header' });
+      const body: ErrorResponse = {
+        code: 'UNAUTHORIZED',
+        message: 'Missing or invalid authorization header',
+      };
+      res.status(401).json(body);
       return;
     }
 
@@ -28,7 +33,11 @@ export function authMiddleware(jwtSecret: string) {
       req.userEmail = decoded.email;
       next();
     } catch (error) {
-      res.status(401).json({ error: 'Invalid or expired token' });
+      const body: ErrorResponse = {
+        code: 'UNAUTHORIZED',
+        message: 'Invalid or expired token',
+      };
+      res.status(401).json(body);
       return;
     }
   };

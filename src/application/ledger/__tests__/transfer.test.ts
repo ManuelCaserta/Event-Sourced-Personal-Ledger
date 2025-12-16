@@ -7,9 +7,12 @@ import { CreateAccountUseCase } from '../createAccount.js';
 import { RecordIncomeUseCase } from '../recordIncome.js';
 import { TransferUseCase } from '../transfer.js';
 import { CurrencyMismatchError, InsufficientBalanceError } from '../../../domain/ledger/errors.js';
+import { NotFoundError } from '../../errors.js';
 import { randomUUID } from 'crypto';
 
-describe('TransferUseCase', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('TransferUseCase', () => {
   let createAccountUseCase: CreateAccountUseCase;
   let recordIncomeUseCase: RecordIncomeUseCase;
   let useCase: TransferUseCase;
@@ -237,7 +240,7 @@ describe('TransferUseCase', () => {
         occurredAt: new Date(),
         idempotencyKey: randomUUID(),
       })
-    ).rejects.toThrow('Source account not found');
+    ).rejects.toThrow(NotFoundError);
   });
 
   it('should throw error for non-existent destination account', async () => {
@@ -250,7 +253,7 @@ describe('TransferUseCase', () => {
         occurredAt: new Date(),
         idempotencyKey: randomUUID(),
       })
-    ).rejects.toThrow('Destination account not found');
+    ).rejects.toThrow(NotFoundError);
   });
 });
 

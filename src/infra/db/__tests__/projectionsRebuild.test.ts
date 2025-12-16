@@ -9,7 +9,9 @@ import {
 } from '../../../domain/ledger/events.js';
 import { randomUUID } from 'crypto';
 
-describe('Projections Rebuild', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('Projections Rebuild', () => {
   let userId: string;
   let accountId1: string;
   let accountId2: string;

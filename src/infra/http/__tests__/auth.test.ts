@@ -9,7 +9,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-describe('Auth API', () => {
+const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
+
+describeDb('Auth API', () => {
   let app: express.Application;
   const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
 
@@ -62,7 +64,8 @@ describe('Auth API', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('error', 'Validation failed');
+      expect(response.body).toHaveProperty('code', 'VALIDATION_ERROR');
+      expect(response.body).toHaveProperty('message', 'Validation failed');
     });
 
     it('should reject short password', async () => {
@@ -72,7 +75,8 @@ describe('Auth API', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('error', 'Validation failed');
+      expect(response.body).toHaveProperty('code', 'VALIDATION_ERROR');
+      expect(response.body).toHaveProperty('message', 'Validation failed');
     });
 
     it('should reject duplicate email', async () => {
@@ -87,7 +91,8 @@ describe('Auth API', () => {
       });
 
       expect(response.status).toBe(409);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('code', 'CONFLICT');
+      expect(response.body).toHaveProperty('message');
     });
   });
 
@@ -119,7 +124,8 @@ describe('Auth API', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('error', 'Invalid email or password');
+      expect(response.body).toHaveProperty('code', 'UNAUTHORIZED');
+      expect(response.body).toHaveProperty('message', 'Invalid email or password');
     });
 
     it('should reject invalid password', async () => {
@@ -129,7 +135,8 @@ describe('Auth API', () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('error', 'Invalid email or password');
+      expect(response.body).toHaveProperty('code', 'UNAUTHORIZED');
+      expect(response.body).toHaveProperty('message', 'Invalid email or password');
     });
 
     it('should reject invalid email format', async () => {
@@ -139,7 +146,8 @@ describe('Auth API', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('error', 'Validation failed');
+      expect(response.body).toHaveProperty('code', 'VALIDATION_ERROR');
+      expect(response.body).toHaveProperty('message', 'Validation failed');
     });
 
     it('should enforce rate limit on login', async () => {
@@ -153,7 +161,10 @@ describe('Auth API', () => {
 
       const responses = await Promise.all(requests);
       const rateLimited = responses.some(
-        (r) => r.status === 429 || r.text.includes('Too many login attempts')
+        (r) =>
+          r.status === 429 ||
+          r.body?.code === 'RATE_LIMITED' ||
+          r.text.includes('Too many login attempts')
       );
 
       // Note: Rate limiting might not work perfectly in tests due to timing
@@ -199,7 +210,8 @@ describe('Auth API', () => {
       const response = await request(app).get('/api/protected');
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('code', 'UNAUTHORIZED');
+      expect(response.body).toHaveProperty('message');
     });
 
     it('should reject request with invalid token', async () => {
@@ -208,7 +220,8 @@ describe('Auth API', () => {
         .set('Authorization', 'Bearer invalid-token');
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('code', 'UNAUTHORIZED');
+      expect(response.body).toHaveProperty('message');
     });
 
     it('should reject request with malformed header', async () => {
@@ -217,7 +230,8 @@ describe('Auth API', () => {
         .set('Authorization', 'InvalidFormat token');
 
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('code', 'UNAUTHORIZED');
+      expect(response.body).toHaveProperty('message');
     });
   });
 });

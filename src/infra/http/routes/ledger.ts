@@ -13,6 +13,133 @@ import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { randomUUID } from 'crypto';
 
+/**
+ * @openapi
+ * /api/accounts/{id}/income:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Record income
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amountCents, occurredAt]
+ *             properties:
+ *               amountCents: { type: integer, example: 1000 }
+ *               occurredAt: { type: string, format: date-time }
+ *               description: { type: string }
+ *     responses:
+ *       200: { description: OK }
+ *       400:
+ *         description: Validation or domain error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
+ * /api/accounts/{id}/expense:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Record expense
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amountCents, occurredAt]
+ *             properties:
+ *               amountCents: { type: integer, example: 1000 }
+ *               occurredAt: { type: string, format: date-time }
+ *               description: { type: string }
+ *     responses:
+ *       200: { description: OK }
+ *       400:
+ *         description: Validation or domain error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       409:
+ *         description: Insufficient balance
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *
+ * /api/transfers:
+ *   post:
+ *     tags: [Transfers]
+ *     summary: Transfer between accounts (atomic)
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fromAccountId, toAccountId, amountCents, occurredAt]
+ *             properties:
+ *               fromAccountId: { type: string, format: uuid }
+ *               toAccountId: { type: string, format: uuid }
+ *               amountCents: { type: integer, example: 1000 }
+ *               occurredAt: { type: string, format: date-time }
+ *               description: { type: string }
+ *     responses:
+ *       200: { description: OK }
+ *       400:
+ *         description: Validation or domain error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Account not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       409:
+ *         description: Insufficient balance or concurrency conflict
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ */
+
 const createAccountBodySchema = z.object({
   name: z.string().min(1),
   currency: z.string().length(3),
@@ -24,7 +151,8 @@ const recordIncomeParamsSchema = z.object({
 });
 
 const recordIncomeBodySchema = z.object({
-  amountCents: z.number().int().positive(),
+  // Let domain validation return stable error codes (e.g. INVALID_AMOUNT)
+  amountCents: z.number().int(),
   occurredAt: z.string().datetime(),
   description: z.string().optional(),
 });
@@ -34,7 +162,8 @@ const recordExpenseParamsSchema = z.object({
 });
 
 const recordExpenseBodySchema = z.object({
-  amountCents: z.number().int().positive(),
+  // Let domain validation return stable error codes (e.g. INVALID_AMOUNT)
+  amountCents: z.number().int(),
   occurredAt: z.string().datetime(),
   description: z.string().optional(),
 });
@@ -42,7 +171,8 @@ const recordExpenseBodySchema = z.object({
 const transferBodySchema = z.object({
   fromAccountId: z.string().uuid(),
   toAccountId: z.string().uuid(),
-  amountCents: z.number().int().positive(),
+  // Let domain validation return stable error codes (e.g. INVALID_AMOUNT)
+  amountCents: z.number().int(),
   occurredAt: z.string().datetime(),
   description: z.string().optional(),
 });
@@ -107,7 +237,7 @@ export function createLedgerRoutes(jwtSecret: string) {
     try {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
-        res.status(404).json({ error: 'Account not found' });
+        res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
         return;
       }
       res.json(account);
@@ -213,7 +343,7 @@ export function createLedgerRoutes(jwtSecret: string) {
     try {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
-        res.status(404).json({ error: 'Account not found' });
+        res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
         return;
       }
 

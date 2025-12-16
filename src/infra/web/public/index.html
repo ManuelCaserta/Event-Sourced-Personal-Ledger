@@ -249,7 +249,7 @@
 
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Login failed');
+          throw new Error(data.message || data.error || 'Login failed');
         }
 
         const data = await res.json();
@@ -277,7 +277,7 @@
 
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Registration failed');
+          throw new Error(data.message || data.error || 'Registration failed');
         }
 
         await login();
@@ -355,7 +355,7 @@
 
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Failed to create account');
+          throw new Error(data.message || data.error || 'Failed to create account');
         }
 
         successDiv.textContent = 'Account created successfully';
@@ -395,7 +395,7 @@
 
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Failed to record transaction');
+          throw new Error(data.message || data.error || 'Failed to record transaction');
         }
 
         successDiv.textContent = 'Transaction recorded successfully';
@@ -437,7 +437,7 @@
 
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Failed to transfer');
+          throw new Error(data.message || data.error || 'Failed to transfer');
         }
 
         successDiv.textContent = 'Transfer completed successfully';

@@ -7,8 +7,9 @@ Write model uses **event sourcing** + optimistic concurrency; read model is upda
 
 ## Live Demo
 
-- **URL**: `<PASTE_RAILWAY_URL_HERE>`
-- **Deploy guide**: `docs/DEPLOYMENT.md`
+- **Repo**: `https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger`
+- **Live demo**: not deployed yet (follow [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and paste the Railway URL here)
+- **OpenAPI docs (live/local)**: `GET /docs`
 
 ## Key Features (high-signal)
 
@@ -21,14 +22,14 @@ Write model uses **event sourcing** + optimistic concurrency; read model is upda
 
 ## Docs (fast links)
 
-- **Architecture**: `docs/ARCHITECTURE.md`
-- **Decisions (ADRs)**: `docs/decisions/ADR-001-...` → `ADR-005-...`
-- **Deployment (Railway)**: `docs/DEPLOYMENT.md`
-- **Release checklist**: `docs/RELEASE_CHECKLIST.md`
-- **Assets checklist**: `docs/ASSETS.md`
-- **Security**: `SECURITY.md`
-- **Changelog**: `CHANGELOG.md`
-- **License**: `LICENSE`
+- **Architecture**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Decisions (ADRs)**: [`docs/decisions/`](docs/decisions/)
+- **Deployment (Railway)**: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+- **Release checklist**: [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)
+- **Assets checklist**: [`docs/ASSETS.md`](docs/ASSETS.md)
+- **Security**: [`SECURITY.md`](SECURITY.md)
+- **Changelog**: [`CHANGELOG.md`](CHANGELOG.md)
+- **License**: [`LICENSE`](LICENSE)
 
 ## Quickstart (Docker)
 

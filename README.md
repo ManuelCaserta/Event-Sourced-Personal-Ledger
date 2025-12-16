@@ -4,6 +4,11 @@
 
 A modular monolith implementing an event-sourced personal ledger system.
 
+## Live Demo
+
+- **URL**: `<PASTE_RAILWAY_URL_HERE>`
+- **Deploy guide**: see `docs/DEPLOYMENT.md`
+
 ## Architecture
 
 - **Domain Layer**: Pure business logic, zero I/O

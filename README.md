@@ -37,13 +37,20 @@ npm install
 
 1. Start PostgreSQL using Docker Compose:
    ```bash
-   docker-compose up -d db
+   docker compose up -d db
    ```
 
 2. Run migrations:
    ```bash
    npm run db:migrate
    ```
+
+### Docker (app + db)
+
+```bash
+# Start app + db (runs migrations on startup)
+docker compose up --build
+```
 
 ### Development
 

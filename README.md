@@ -55,8 +55,11 @@ npm run typecheck
 # Linting
 npm run lint
 
-# Run tests
-npm run test
+# Unit tests (no DB required)
+npm test
+
+# Integration tests (requires DATABASE_URL + Postgres)
+npm run test:integration
 ```
 
 ### Environment Variables

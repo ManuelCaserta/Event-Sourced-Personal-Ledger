@@ -9,8 +9,9 @@
     "build": "tsc",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "test": "vitest",
+    "test": "vitest --run",
     "test:watch": "vitest --watch",
+    "test:integration": "node -e \"if(!process.env.DATABASE_URL){console.error('DATABASE_URL is required for integration tests');process.exit(1)}\" && vitest --run -c vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx src/infra/db/migrate.ts",
     "projections:rebuild": "tsx src/scripts/projectionsRebuild.ts"

@@ -2,104 +2,101 @@
 
 [![CI](https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger/actions/workflows/ci.yml)
 
-A modular monolith implementing an event-sourced personal ledger system.
+Event-sourced personal ledger (TypeScript/Node) built as a **modular monolith**.
+Write model uses **event sourcing** + optimistic concurrency; read model is updated via **synchronous projections**.
 
 ## Live Demo
 
 - **URL**: `<PASTE_RAILWAY_URL_HERE>`
-- **Deploy guide**: see `docs/DEPLOYMENT.md`
+- **Deploy guide**: `docs/DEPLOYMENT.md`
 
-## Architecture
+## Key Features (high-signal)
 
-- **Domain Layer**: Pure business logic, zero I/O
-- **Application Layer**: Use cases and orchestration
-- **Infrastructure Layer**: HTTP, database, external services
+- **Event store in Postgres** (append-only, per-stream versioning)
+- **Optimistic concurrency** via `expectedVersion` + `ConcurrencyError`
+- **Atomic transfers** across two aggregates via `appendMultiple(...)`
+- **CQRS read models** (`read_accounts`, `read_movements`) updated synchronously inside the same DB transaction
+- **Idempotent command handling** (command dedup table)
+- **Stable HTTP error contract**: `{ code, message, details? }` + OpenAPI docs
 
-Dependencies flow in one direction: `domain ← application ← infra`
+## Docs (fast links)
 
-## Tech Stack
+- **Architecture**: `docs/ARCHITECTURE.md`
+- **Decisions (ADRs)**: `docs/decisions/ADR-001-...` → `ADR-005-...`
+- **Deployment (Railway)**: `docs/DEPLOYMENT.md`
+- **Release checklist**: `docs/RELEASE_CHECKLIST.md`
+- **Assets checklist**: `docs/ASSETS.md`
+- **Security**: `SECURITY.md`
+- **Changelog**: `CHANGELOG.md`
+- **License**: `LICENSE`
 
-- Node.js + TypeScript
-- Express
-- PostgreSQL
-- Event Sourcing
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Docker and Docker Compose (for PostgreSQL)
-- PostgreSQL 16+ (if not using Docker)
-
-### Installation
+## Quickstart (Docker)
 
 ```bash
-npm install
-```
-
-### Database Setup
-
-1. Start PostgreSQL using Docker Compose:
-   ```bash
-   docker compose up -d db
-   ```
-
-2. Run migrations:
-   ```bash
-   npm run db:migrate
-   ```
-
-### Docker (app + db)
-
-```bash
-# Start app + db (runs migrations on startup)
 docker compose up --build
 ```
 
-### Development
+- App: `http://localhost:3000`
+- Health: `http://localhost:3000/healthz`
+- Docs: `http://localhost:3000/docs`
+
+## Local Quickstart (no Docker)
 
 ```bash
-# Start dev server with hot reload
+npm install
+
+# set DATABASE_URL and JWT_SECRET in your shell / .env
+npm run db:migrate
 npm run dev
+```
 
-# Type checking
-npm run typecheck
+## API Quickstart (curl)
 
-# Linting
-npm run lint
+```bash
+# Register + login
+curl -sS -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"me@example.com","password":"password123"}'
 
-# Unit tests (no DB required)
+TOKEN="$(curl -sS -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"me@example.com","password":"password123"}' | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).token")"
+
+# Create account
+curl -sS -X POST http://localhost:3000/api/accounts \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"Checking","currency":"USD","allowNegative":false}'
+```
+
+## Testing
+
+- **Unit tests (no DB)**:
+
+```bash
 npm test
+```
 
-# Integration tests (requires DATABASE_URL + Postgres)
+- **Integration tests (requires Postgres + `DATABASE_URL`)**:
+
+```bash
+npm run db:migrate
 npm run test:integration
 ```
 
-### Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
-cp .env.example .env
-```
-
-Required variables:
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - Secret for JWT token signing
-
-## Project Structure
+## Repo layout (layering)
 
 ```
-/src
-  /domain          # Pure domain logic (no I/O)
-  /application     # Use cases and orchestration
-  /infra           # HTTP, DB, external services
-  /scripts         # CLI utilities
-/docs              # Architecture docs and ADRs
+src/domain        # Pure domain logic (no I/O)
+src/application   # Use-cases + orchestration (imports domain + infra)
+src/infra         # HTTP, DB, projections
+docs/             # Architecture + ADRs + deploy/release guidance
 ```
 
-## License
+## Implementation pointers (real file paths)
 
-MIT
+- **Event store**: `src/infra/db/eventStoreRepo.ts`
+- **Projector**: `src/infra/db/projector.ts`
+- **HTTP server** (`/healthz`, `/docs`): `src/infra/http/server.ts`
+- **Error mapping**: `src/infra/http/middleware/errorHandler.ts`
+- **Migrations**: `src/infra/db/migrations/*.sql`
 

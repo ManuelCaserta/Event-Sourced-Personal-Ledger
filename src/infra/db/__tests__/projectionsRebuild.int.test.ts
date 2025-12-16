@@ -67,8 +67,6 @@ describeDb('Projections Rebuild', () => {
   });
 
   it('should rebuild projections to match incremental updates', async () => {
-    const correlationId = randomUUID();
-
     // Create accounts and events incrementally (simulating normal operation)
     const account1Created: AccountCreated = {
       type: 'AccountCreated',

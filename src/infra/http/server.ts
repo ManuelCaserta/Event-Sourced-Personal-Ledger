@@ -8,6 +8,7 @@ import { createLedgerRoutes } from './routes/ledger.js';
 import { createSwaggerRoutes } from './routes/swagger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { apiRateLimiter } from './middleware/rateLimit.js';
+import { asyncHandler } from './middleware/asyncHandler.js';
 import { pool } from '../db/pool.js';
 
 dotenv.config();
@@ -43,14 +44,17 @@ app.use(apiRateLimiter);
 app.use(express.static(join(__dirname, '../../web/public')));
 
 // Health check endpoint (no auth required)
-app.get('/healthz', async (_req, res) => {
-  try {
-    await withTimeout(pool.query('SELECT 1'), 2000);
-    res.status(200).json({ status: 'ok' });
-  } catch {
-    res.status(500).json({ code: 'DB_UNAVAILABLE', message: 'Database unavailable' });
-  }
-});
+app.get(
+  '/healthz',
+  asyncHandler(async (_req, res) => {
+    try {
+      await withTimeout(pool.query('SELECT 1'), 2000);
+      res.status(200).json({ status: 'ok' });
+    } catch {
+      res.status(500).json({ code: 'DB_UNAVAILABLE', message: 'Database unavailable' });
+    }
+  })
+);
 
 // Swagger/OpenAPI docs
 app.use(createSwaggerRoutes());

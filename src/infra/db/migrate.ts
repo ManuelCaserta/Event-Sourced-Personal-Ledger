@@ -102,5 +102,5 @@ async function migrate(): Promise<void> {
 }
 
 // Run migrations
-migrate();
+void migrate();
 

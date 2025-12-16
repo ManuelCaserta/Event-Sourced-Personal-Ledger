@@ -5,6 +5,7 @@ import { LoginUseCase } from '../../../application/auth/login.js';
 import { UserRepo } from '../../../infra/db/userRepo.js';
 import { loginRateLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 /**
  * @openapi
@@ -88,28 +89,22 @@ export function createAuthRoutes(jwtSecret: string) {
   router.post(
     '/register',
     validate({ body: registerBodySchema }),
-    async (req, res, next) => {
-      try {
-        const result = await registerUseCase.execute(req.body);
-        res.status(201).json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req, res) => {
+      const body = registerBodySchema.parse(req.body);
+      const result = await registerUseCase.execute(body);
+      res.status(201).json(result);
+    })
   );
 
   router.post(
     '/login',
     loginRateLimiter,
     validate({ body: loginBodySchema }),
-    async (req, res, next) => {
-      try {
-        const result = await loginUseCase.execute(req.body);
-        res.status(200).json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req, res) => {
+      const body = loginBodySchema.parse(req.body);
+      const result = await loginUseCase.execute(body);
+      res.status(200).json(result);
+    })
   );
 
   return router;

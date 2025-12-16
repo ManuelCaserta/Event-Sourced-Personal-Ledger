@@ -4,7 +4,6 @@ import { EventStoreRepo, ConcurrencyError } from '../eventStoreRepo.js';
 import {
   AccountCreated,
   IncomeRecorded,
-  ExpenseRecorded,
 } from '../../../domain/ledger/events.js';
 import { randomUUID } from 'crypto';
 

@@ -11,6 +11,7 @@ import { Projector } from '../../db/projector.js';
 import { ProjectionsRepo } from '../../db/projectionsRepo.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import { randomUUID } from 'crypto';
 
 /**
@@ -309,8 +310,9 @@ const getMovementsParamsSchema = z.object({
 });
 
 const getMovementsQuerySchema = z.object({
-  limit: z.string().optional().transform((val) => (val ? parseInt(val, 10) : 50)),
-  cursor: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
+  // Accept query params as strings (from Express) or numbers (if previously parsed)
+  limit: z.coerce.number().int().optional().default(50),
+  cursor: z.coerce.number().int().optional(),
 });
 
 export function createLedgerRoutes(jwtSecret: string) {
@@ -333,45 +335,40 @@ export function createLedgerRoutes(jwtSecret: string) {
   router.post(
     '/accounts',
     validate({ body: createAccountBodySchema }),
-    async (req: AuthRequest, res, next) => {
-      try {
-        const result = await createAccountUseCase.execute({
-          userId: req.userId!,
-          name: req.body.name,
-          currency: req.body.currency,
-          allowNegative: req.body.allowNegative,
-          idempotencyKey: randomUUID(),
-        });
-        res.status(201).json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req: AuthRequest, res) => {
+      const body = createAccountBodySchema.parse(req.body);
+      const result = await createAccountUseCase.execute({
+        userId: req.userId!,
+        name: body.name,
+        currency: body.currency,
+        allowNegative: body.allowNegative,
+        idempotencyKey: randomUUID(),
+      });
+      res.status(201).json(result);
+    })
   );
 
   // List accounts
-  router.get('/accounts', async (req: AuthRequest, res, next) => {
-    try {
+  router.get(
+    '/accounts',
+    asyncHandler(async (req: AuthRequest, res) => {
       const accounts = await queries.getAccounts(req.userId!);
       res.json(accounts);
-    } catch (error) {
-      next(error);
-    }
-  });
+    })
+  );
 
   // Get account
-  router.get('/accounts/:id', async (req: AuthRequest, res, next) => {
-    try {
+  router.get(
+    '/accounts/:id',
+    asyncHandler(async (req: AuthRequest, res) => {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
         res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
         return;
       }
       res.json(account);
-    } catch (error) {
-      next(error);
-    }
-  });
+    })
+  );
 
   // Record income
   router.post(
@@ -380,21 +377,19 @@ export function createLedgerRoutes(jwtSecret: string) {
       params: recordIncomeParamsSchema,
       body: recordIncomeBodySchema,
     }),
-    async (req: AuthRequest, res, next) => {
-      try {
-        const result = await recordIncomeUseCase.execute({
-          userId: req.userId!,
-          accountId: req.params.id,
-          amountCents: req.body.amountCents,
-          occurredAt: new Date(req.body.occurredAt),
-          description: req.body.description,
-          idempotencyKey: randomUUID(),
-        });
-        res.json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req: AuthRequest, res) => {
+      const params = recordIncomeParamsSchema.parse(req.params);
+      const body = recordIncomeBodySchema.parse(req.body);
+      const result = await recordIncomeUseCase.execute({
+        userId: req.userId!,
+        accountId: params.id,
+        amountCents: body.amountCents,
+        occurredAt: new Date(body.occurredAt),
+        description: body.description,
+        idempotencyKey: randomUUID(),
+      });
+      res.json(result);
+    })
   );
 
   // Record expense
@@ -404,43 +399,38 @@ export function createLedgerRoutes(jwtSecret: string) {
       params: recordExpenseParamsSchema,
       body: recordExpenseBodySchema,
     }),
-    async (req: AuthRequest, res, next) => {
-      try {
-        const result = await recordExpenseUseCase.execute({
-          userId: req.userId!,
-          accountId: req.params.id,
-          amountCents: req.body.amountCents,
-          occurredAt: new Date(req.body.occurredAt),
-          description: req.body.description,
-          idempotencyKey: randomUUID(),
-        });
-        res.json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req: AuthRequest, res) => {
+      const params = recordExpenseParamsSchema.parse(req.params);
+      const body = recordExpenseBodySchema.parse(req.body);
+      const result = await recordExpenseUseCase.execute({
+        userId: req.userId!,
+        accountId: params.id,
+        amountCents: body.amountCents,
+        occurredAt: new Date(body.occurredAt),
+        description: body.description,
+        idempotencyKey: randomUUID(),
+      });
+      res.json(result);
+    })
   );
 
   // Transfer
   router.post(
     '/transfers',
     validate({ body: transferBodySchema }),
-    async (req: AuthRequest, res, next) => {
-      try {
-        const result = await transferUseCase.execute({
-          userId: req.userId!,
-          fromAccountId: req.body.fromAccountId,
-          toAccountId: req.body.toAccountId,
-          amountCents: req.body.amountCents,
-          occurredAt: new Date(req.body.occurredAt),
-          description: req.body.description,
-          idempotencyKey: randomUUID(),
-        });
-        res.json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req: AuthRequest, res) => {
+      const body = transferBodySchema.parse(req.body);
+      const result = await transferUseCase.execute({
+        userId: req.userId!,
+        fromAccountId: body.fromAccountId,
+        toAccountId: body.toAccountId,
+        amountCents: body.amountCents,
+        occurredAt: new Date(body.occurredAt),
+        description: body.description,
+        idempotencyKey: randomUUID(),
+      });
+      res.json(result);
+    })
   );
 
   // Get movements
@@ -450,24 +440,18 @@ export function createLedgerRoutes(jwtSecret: string) {
       params: getMovementsParamsSchema,
       query: getMovementsQuerySchema,
     }),
-    async (req: AuthRequest, res, next) => {
-      try {
-        const result = await queries.getMovements(
-          req.params.id,
-          req.userId!,
-          req.query.limit as number | undefined,
-          req.query.cursor as number | undefined
-        );
-        res.json(result);
-      } catch (error) {
-        next(error);
-      }
-    }
+    asyncHandler(async (req: AuthRequest, res) => {
+      const params = getMovementsParamsSchema.parse(req.params);
+      const query = getMovementsQuerySchema.parse(req.query);
+      const result = await queries.getMovements(params.id, req.userId!, query.limit, query.cursor);
+      res.json(result);
+    })
   );
 
   // CSV export
-  router.get('/accounts/:id/movements.csv', async (req: AuthRequest, res, next) => {
-    try {
+  router.get(
+    '/accounts/:id/movements.csv',
+    asyncHandler(async (req: AuthRequest, res) => {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
         res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
@@ -494,10 +478,8 @@ export function createLedgerRoutes(jwtSecret: string) {
         `attachment; filename="movements-${account.name.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.csv"`
       );
       res.send(csvHeader + csvRows);
-    } catch (error) {
-      next(error);
-    }
-  });
+    })
+  );
 
   return router;
 }

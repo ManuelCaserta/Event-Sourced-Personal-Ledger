@@ -9,7 +9,6 @@ describeDb('CommandDedupRepo', () => {
   const repo = new CommandDedupRepo();
   let userId: string;
   let testUserId: string;
-  const testEmail = `vitest-commandDedup-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     // Ensure database is ready
@@ -18,7 +17,7 @@ describeDb('CommandDedupRepo', () => {
     // Create a test user for foreign key constraints
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      [testEmail, 'hash']
+      ['test@example.com', 'hash']
     );
     testUserId = userResult.rows[0].id;
   });
@@ -26,6 +25,7 @@ describeDb('CommandDedupRepo', () => {
   afterAll(async () => {
     // Clean up test user
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
+    await pool.end();
   });
 
   beforeEach(() => {
@@ -71,10 +71,9 @@ describeDb('CommandDedupRepo', () => {
 
     it('should allow same idempotency key for different users', async () => {
       // Create another test user
-      const testEmail2 = `vitest-commandDedup2-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
       const userResult = await pool.query<{ id: string }>(
         'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-        [testEmail2, 'hash']
+        ['test2@example.com', 'hash']
       );
       const userId2 = userResult.rows[0].id;
 

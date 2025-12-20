@@ -18,14 +18,13 @@ describeDb('RecordIncomeUseCase', () => {
   let userId: string;
   let accountId: string;
   let testUserId: string;
-  const testEmail = `vitest-recordIncome-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
 
   beforeAll(async () => {
     await pool.query('SELECT 1');
 
     const userResult = await pool.query<{ id: string }>(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      [testEmail, 'hash']
+      ['record-income-test@example.com', 'hash']
     );
     testUserId = userResult.rows[0].id;
   });
@@ -36,6 +35,7 @@ describeDb('RecordIncomeUseCase', () => {
     await pool.query('DELETE FROM events WHERE aggregate_id IN (SELECT account_id FROM read_accounts WHERE user_id = $1)', [testUserId]);
     await pool.query('DELETE FROM command_dedup WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
+    await pool.end();
   });
 
   beforeEach(async () => {
@@ -82,7 +82,7 @@ describeDb('RecordIncomeUseCase', () => {
       'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
       [accountId]
     );
-    expect(Number(accountResult.rows[0].balance_cents)).toBe(1000);
+    expect(accountResult.rows[0].balance_cents).toBe(1000);
 
     // Verify movement was created
     const movementResult = await pool.query(
@@ -91,7 +91,7 @@ describeDb('RecordIncomeUseCase', () => {
     );
     expect(movementResult.rows).toHaveLength(1);
     expect(movementResult.rows[0].kind).toBe('income');
-    expect(Number(movementResult.rows[0].amount_cents)).toBe(1000);
+    expect(movementResult.rows[0].amount_cents).toBe(1000);
   });
 
   it('should accumulate multiple incomes', async () => {
@@ -117,7 +117,7 @@ describeDb('RecordIncomeUseCase', () => {
       'SELECT balance_cents FROM read_accounts WHERE account_id = $1',
       [accountId]
     );
-    expect(Number(accountResult.rows[0].balance_cents)).toBe(1500);
+    expect(accountResult.rows[0].balance_cents).toBe(1500);
   });
 
   it('should be idempotent', async () => {
@@ -149,7 +149,7 @@ describeDb('RecordIncomeUseCase', () => {
       [accountId]
     );
     expect(movementResult.rows).toHaveLength(1);
-    expect(Number(movementResult.rows[0].amount_cents)).toBe(1000);
+    expect(movementResult.rows[0].amount_cents).toBe(1000);
   });
 
   it('should throw error for non-existent account', async () => {

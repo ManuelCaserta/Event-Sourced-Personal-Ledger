@@ -2,7 +2,6 @@ import { Account } from '../../domain/ledger/account.js';
 import { AccountEvent } from '../../domain/ledger/events.js';
 import { EventStoreRepo, EventMetadata } from '../../infra/db/eventStoreRepo.js';
 import { CommandDedupRepo } from '../../infra/db/commandDedupRepo.js';
-import { NotFoundError } from '../errors.js';
 
 export interface RecordExpenseCommand {
   userId: string;
@@ -35,7 +34,7 @@ export class RecordExpenseUseCase {
       // Load current state to return current balance
       const events = await this.eventStore.loadStream('account', command.accountId);
       if (events.length === 0) {
-        throw new NotFoundError('Account not found');
+        throw new Error('Account not found');
       }
 
       const account = Account.fromEvents(command.accountId, events.map((e) => e.payload as AccountEvent));
@@ -52,7 +51,7 @@ export class RecordExpenseUseCase {
     // Load account aggregate
     const events = await this.eventStore.loadStream('account', command.accountId);
     if (events.length === 0) {
-      throw new NotFoundError('Account not found');
+      throw new Error('Account not found');
     }
 
     const account = Account.fromEvents(

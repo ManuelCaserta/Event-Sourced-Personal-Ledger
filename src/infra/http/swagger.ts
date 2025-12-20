@@ -22,17 +22,6 @@ const options: swaggerJsdoc.Options = {
           bearerFormat: 'JWT',
         },
       },
-      schemas: {
-        ErrorResponse: {
-          type: 'object',
-          required: ['code', 'message'],
-          properties: {
-            code: { type: 'string', example: 'INSUFFICIENT_BALANCE' },
-            message: { type: 'string', example: 'Insufficient balance' },
-            details: { type: 'object', additionalProperties: true },
-          },
-        },
-      },
     },
     tags: [
       { name: 'Auth', description: 'Authentication endpoints' },

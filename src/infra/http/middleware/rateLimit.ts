@@ -7,10 +7,7 @@ import rateLimit from 'express-rate-limit';
 export const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 60, // 60 requests per window
-  message: {
-    code: 'RATE_LIMITED',
-    message: 'Too many requests, please try again later.',
-  },
+  message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -21,10 +18,7 @@ export const apiRateLimiter = rateLimit({
 export const loginRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // 10 requests per window
-  message: {
-    code: 'RATE_LIMITED',
-    message: 'Too many login attempts, please try again later.',
-  },
+  message: 'Too many login attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   // Use IP address for login (no user ID available yet)

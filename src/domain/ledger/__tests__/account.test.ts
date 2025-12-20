@@ -1,11 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { Account } from '../account.js';
 import {
-  type AccountEvent,
+  AccountCreated,
+  IncomeRecorded,
+  ExpenseRecorded,
+  TransferSent,
+  TransferReceived,
+  AccountEvent,
 } from '../events.js';
 import {
   InvalidAmountError,
   InsufficientBalanceError,
+  CurrencyMismatchError,
 } from '../errors.js';
 import { Money } from '../money.js';
 

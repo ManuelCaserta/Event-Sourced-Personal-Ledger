@@ -1,103 +1,88 @@
 # Event-Sourced Personal Ledger
 
-[![CI](https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger/actions/workflows/ci.yml)
+A modular monolith implementing an event-sourced personal ledger system.
 
-Event-sourced personal ledger (TypeScript/Node) built as a **modular monolith**.
-Write model uses **event sourcing** + optimistic concurrency; read model is updated via **synchronous projections**.
+## Architecture
 
-## Live Demo
+- **Domain Layer**: Pure business logic, zero I/O
+- **Application Layer**: Use cases and orchestration
+- **Infrastructure Layer**: HTTP, database, external services
 
-- **Repo**: `https://github.com/ManuelCaserta/Event-Sourced-Personal-Ledger`
-- **Live demo**: not deployed yet (follow [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and paste the Railway URL here)
-- **OpenAPI docs (live/local)**: `GET /docs`
+Dependencies flow in one direction: `domain ← application ← infra`
 
-## Key Features (high-signal)
+## Tech Stack
 
-- **Event store in Postgres** (append-only, per-stream versioning)
-- **Optimistic concurrency** via `expectedVersion` + `ConcurrencyError`
-- **Atomic transfers** across two aggregates via `appendMultiple(...)`
-- **CQRS read models** (`read_accounts`, `read_movements`) updated synchronously inside the same DB transaction
-- **Idempotent command handling** (command dedup table)
-- **Stable HTTP error contract**: `{ code, message, details? }` + OpenAPI docs
+- Node.js + TypeScript
+- Express
+- PostgreSQL
+- Event Sourcing
 
-## Docs (fast links)
+## Getting Started
 
-- **Architecture**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- **Decisions (ADRs)**: [`docs/decisions/`](docs/decisions/)
-- **Deployment (Railway)**: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
-- **Release checklist**: [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)
-- **Assets checklist**: [`docs/ASSETS.md`](docs/ASSETS.md)
-- **Security**: [`SECURITY.md`](SECURITY.md)
-- **Changelog**: [`CHANGELOG.md`](CHANGELOG.md)
-- **License**: [`LICENSE`](LICENSE)
+### Prerequisites
 
-## Quickstart (Docker)
+- Node.js 18+
+- Docker and Docker Compose (for PostgreSQL)
+- PostgreSQL 16+ (if not using Docker)
 
-```bash
-docker compose up --build
-```
-
-- App: `http://localhost:3000`
-- Health: `http://localhost:3000/healthz`
-- Docs: `http://localhost:3000/docs`
-
-## Local Quickstart (no Docker)
+### Installation
 
 ```bash
 npm install
+```
 
-# set DATABASE_URL and JWT_SECRET in your shell / .env
-npm run db:migrate
+### Database Setup
+
+1. Start PostgreSQL using Docker Compose:
+   ```bash
+   docker-compose up -d db
+   ```
+
+2. Run migrations:
+   ```bash
+   npm run db:migrate
+   ```
+
+### Development
+
+```bash
+# Start dev server with hot reload
 npm run dev
+
+# Type checking
+npm run typecheck
+
+# Linting
+npm run lint
+
+# Run tests
+npm run test
 ```
 
-## API Quickstart (curl)
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
 
 ```bash
-# Register + login
-curl -sS -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"me@example.com","password":"password123"}'
-
-TOKEN="$(curl -sS -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"me@example.com","password":"password123"}' | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).token")"
-
-# Create account
-curl -sS -X POST http://localhost:3000/api/accounts \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"name":"Checking","currency":"USD","allowNegative":false}'
+cp .env.example .env
 ```
 
-## Testing
+Required variables:
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET` - Secret for JWT token signing
 
-- **Unit tests (no DB)**:
-
-```bash
-npm test
-```
-
-- **Integration tests (requires Postgres + `DATABASE_URL`)**:
-
-```bash
-npm run db:migrate
-npm run test:integration
-```
-
-## Repo layout (layering)
+## Project Structure
 
 ```
-src/domain        # Pure domain logic (no I/O)
-src/application   # Use-cases + orchestration (imports domain + infra)
-src/infra         # HTTP, DB, projections
-docs/             # Architecture + ADRs + deploy/release guidance
+/src
+  /domain          # Pure domain logic (no I/O)
+  /application     # Use cases and orchestration
+  /infra           # HTTP, DB, external services
+  /scripts         # CLI utilities
+/docs              # Architecture docs and ADRs
 ```
 
-## Implementation pointers (real file paths)
+## License
 
-- **Event store**: `src/infra/db/eventStoreRepo.ts`
-- **Projector**: `src/infra/db/projector.ts`
-- **HTTP server** (`/healthz`, `/docs`): `src/infra/http/server.ts`
-- **Error mapping**: `src/infra/http/middleware/errorHandler.ts`
-- **Migrations**: `src/infra/db/migrations/*.sql`
+MIT
 

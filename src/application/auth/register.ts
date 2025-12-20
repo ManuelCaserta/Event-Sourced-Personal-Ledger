@@ -1,6 +1,5 @@
 import { Password } from '../../domain/auth/password.js';
 import { UserRepo } from '../../infra/db/userRepo.js';
-import { ConflictError } from '../errors.js';
 
 export interface RegisterCommand {
   email: string;
@@ -19,7 +18,7 @@ export class RegisterUseCase {
     // Check if user already exists
     const existing = await this.userRepo.findByEmail(command.email);
     if (existing) {
-      throw new ConflictError('User with this email already exists');
+      throw new Error('User with this email already exists');
     }
 
     // Hash password

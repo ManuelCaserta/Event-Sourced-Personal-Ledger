@@ -31,6 +31,7 @@ describeDb('E2E: Full Ledger Flow', () => {
       await pool.query('DELETE FROM command_dedup WHERE user_id = $1', [userId]);
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     }
+    await pool.end();
   });
 
   it('should complete full ledger workflow', async () => {

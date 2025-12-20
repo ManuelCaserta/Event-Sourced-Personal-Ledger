@@ -5,31 +5,16 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ledger
+      POSTGRES_DB: ledger_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ledger"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  app:
-    build: .
-    container_name: ledger_app
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      PORT: 3000
-      JWT_SECRET: ${JWT_SECRET:-change-me}
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ledger
-      NODE_ENV: production
-    ports:
-      - "3000:3000"
-    command: ["sh", "-c", "npm run db:migrate:prod && npm run start"]
 
 volumes:
   postgres_data:

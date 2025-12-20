@@ -31,6 +31,7 @@ describeDb('HTTP error mapping (ErrorResponse)', () => {
       await pool.query('DELETE FROM command_dedup WHERE user_id = $1', [userId]);
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     }
+    await pool.end();
   });
 
   beforeEach(async () => {

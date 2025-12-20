@@ -1,6 +1,12 @@
 import { pool } from './pool.js';
 import type { PoolClient } from 'pg';
-import type { AccountEvent } from '../../domain/ledger/events.js';
+import {
+  AccountEvent,
+  IncomeRecorded,
+  ExpenseRecorded,
+  TransferSent,
+  TransferReceived,
+} from '../../domain/ledger/events.js';
 import { randomUUID } from 'crypto';
 import { Projector, ProjectionContext } from './projector.js';
 
@@ -109,14 +115,14 @@ export class EventStoreRepo {
     aggregateType: string,
     aggregateId: string
   ): Promise<number> {
-    const result = await client.query<{ version: number }>(
+    const result = await client.query(
       `SELECT COALESCE(MAX(version), -1) as version
        FROM events
        WHERE aggregate_type = $1 AND aggregate_id = $2`,
       [aggregateType, aggregateId]
     );
 
-    return result.rows[0]?.version ?? -1;
+    return (result.rows[0]?.version as number) ?? -1;
   }
 
   /**
@@ -193,7 +199,8 @@ export class EventStoreRepo {
         event.type === 'TransferSent' ||
         event.type === 'TransferReceived'
       ) {
-        occurredAt = event.occurredAt;
+        occurredAt = (event as IncomeRecorded | ExpenseRecorded | TransferSent | TransferReceived)
+          .occurredAt;
       } else {
         occurredAt = new Date();
       }
@@ -333,12 +340,13 @@ export class EventStoreRepo {
       event.type === 'TransferSent' ||
       event.type === 'TransferReceived'
     ) {
-      occurredAt = event.occurredAt;
+      occurredAt = (event as IncomeRecorded | ExpenseRecorded | TransferSent | TransferReceived)
+        .occurredAt;
     } else {
       occurredAt = new Date();
     }
 
-    const result = await client.query<{ event_seq: number }>(
+    const result = await client.query(
       `INSERT INTO events (
         event_id, aggregate_type, aggregate_id, version,
         event_type, event_version, payload, metadata, occurred_at
@@ -357,7 +365,7 @@ export class EventStoreRepo {
       ]
     );
 
-    return result.rows[0].event_seq;
+    return result.rows[0].event_seq as number;
   }
 }
 

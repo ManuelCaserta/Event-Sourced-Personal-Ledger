@@ -1,7 +1,6 @@
 import { Password } from '../../domain/auth/password.js';
 import { UserRepo } from '../../infra/db/userRepo.js';
 import jwt from 'jsonwebtoken';
-import { UnauthorizedError } from '../errors.js';
 
 export interface LoginCommand {
   email: string;
@@ -24,13 +23,13 @@ export class LoginUseCase {
     // Find user
     const user = await this.userRepo.findByEmail(command.email);
     if (!user) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new Error('Invalid email or password');
     }
 
     // Verify password
     const isValid = await Password.verify(command.password, user.passwordHash);
     if (!isValid) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new Error('Invalid email or password');
     }
 
     // Generate JWT

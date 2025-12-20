@@ -11,262 +11,7 @@ import { Projector } from '../../db/projector.js';
 import { ProjectionsRepo } from '../../db/projectionsRepo.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { asyncHandler } from '../middleware/asyncHandler.js';
 import { randomUUID } from 'crypto';
-
-/**
- * @openapi
- * /api/accounts:
- *   post:
- *     tags: [Accounts]
- *     summary: Create an account
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [name, currency, allowNegative]
- *             properties:
- *               name: { type: string, example: "Checking" }
- *               currency: { type: string, example: "USD" }
- *               allowNegative: { type: boolean, example: false }
- *     responses:
- *       201:
- *         description: Created
- *       400:
- *         description: Validation or domain error
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       409:
- *         description: Conflict (idempotency or concurrency)
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- *   get:
- *     tags: [Accounts]
- *     summary: List accounts
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200:
- *         description: OK
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- * /api/accounts/{id}:
- *   get:
- *     tags: [Accounts]
- *     summary: Get account details
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200:
- *         description: OK
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       404:
- *         description: Account not found
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- * /api/accounts/{id}/movements:
- *   get:
- *     tags: [Movements]
- *     summary: Get account movements (paginated)
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *       - in: query
- *         name: limit
- *         required: false
- *         schema: { type: integer, example: 50 }
- *       - in: query
- *         name: cursor
- *         required: false
- *         schema: { type: integer, example: 123 }
- *     responses:
- *       200:
- *         description: OK
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- * /api/accounts/{id}/movements.csv:
- *   get:
- *     tags: [Movements]
- *     summary: Export account movements as CSV
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200:
- *         description: CSV file
- *         content:
- *           text/csv:
- *             schema:
- *               type: string
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       404:
- *         description: Account not found
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- * /api/accounts/{id}/income:
- *   post:
- *     tags: [Transactions]
- *     summary: Record income
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [amountCents, occurredAt]
- *             properties:
- *               amountCents: { type: integer, example: 1000 }
- *               occurredAt: { type: string, format: date-time }
- *               description: { type: string }
- *     responses:
- *       200: { description: OK }
- *       400:
- *         description: Validation or domain error
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       404:
- *         description: Account not found
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- * /api/accounts/{id}/expense:
- *   post:
- *     tags: [Transactions]
- *     summary: Record expense
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [amountCents, occurredAt]
- *             properties:
- *               amountCents: { type: integer, example: 1000 }
- *               occurredAt: { type: string, format: date-time }
- *               description: { type: string }
- *     responses:
- *       200: { description: OK }
- *       400:
- *         description: Validation or domain error
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       404:
- *         description: Account not found
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       409:
- *         description: Insufficient balance
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *
- * /api/transfers:
- *   post:
- *     tags: [Transfers]
- *     summary: Transfer between accounts (atomic)
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [fromAccountId, toAccountId, amountCents, occurredAt]
- *             properties:
- *               fromAccountId: { type: string, format: uuid }
- *               toAccountId: { type: string, format: uuid }
- *               amountCents: { type: integer, example: 1000 }
- *               occurredAt: { type: string, format: date-time }
- *               description: { type: string }
- *     responses:
- *       200: { description: OK }
- *       400:
- *         description: Validation or domain error
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       404:
- *         description: Account not found
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *       409:
- *         description: Insufficient balance or concurrency conflict
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- */
 
 const createAccountBodySchema = z.object({
   name: z.string().min(1),
@@ -279,8 +24,7 @@ const recordIncomeParamsSchema = z.object({
 });
 
 const recordIncomeBodySchema = z.object({
-  // Let domain validation return stable error codes (e.g. INVALID_AMOUNT)
-  amountCents: z.number().int(),
+  amountCents: z.number().int().positive(),
   occurredAt: z.string().datetime(),
   description: z.string().optional(),
 });
@@ -290,8 +34,7 @@ const recordExpenseParamsSchema = z.object({
 });
 
 const recordExpenseBodySchema = z.object({
-  // Let domain validation return stable error codes (e.g. INVALID_AMOUNT)
-  amountCents: z.number().int(),
+  amountCents: z.number().int().positive(),
   occurredAt: z.string().datetime(),
   description: z.string().optional(),
 });
@@ -299,8 +42,7 @@ const recordExpenseBodySchema = z.object({
 const transferBodySchema = z.object({
   fromAccountId: z.string().uuid(),
   toAccountId: z.string().uuid(),
-  // Let domain validation return stable error codes (e.g. INVALID_AMOUNT)
-  amountCents: z.number().int(),
+  amountCents: z.number().int().positive(),
   occurredAt: z.string().datetime(),
   description: z.string().optional(),
 });
@@ -310,9 +52,8 @@ const getMovementsParamsSchema = z.object({
 });
 
 const getMovementsQuerySchema = z.object({
-  // Accept query params as strings (from Express) or numbers (if previously parsed)
-  limit: z.coerce.number().int().optional().default(50),
-  cursor: z.coerce.number().int().optional(),
+  limit: z.string().optional().transform((val) => (val ? parseInt(val, 10) : 50)),
+  cursor: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
 });
 
 export function createLedgerRoutes(jwtSecret: string) {
@@ -335,40 +76,45 @@ export function createLedgerRoutes(jwtSecret: string) {
   router.post(
     '/accounts',
     validate({ body: createAccountBodySchema }),
-    asyncHandler(async (req: AuthRequest, res) => {
-      const body = createAccountBodySchema.parse(req.body);
-      const result = await createAccountUseCase.execute({
-        userId: req.userId!,
-        name: body.name,
-        currency: body.currency,
-        allowNegative: body.allowNegative,
-        idempotencyKey: randomUUID(),
-      });
-      res.status(201).json(result);
-    })
+    async (req: AuthRequest, res, next) => {
+      try {
+        const result = await createAccountUseCase.execute({
+          userId: req.userId!,
+          name: req.body.name,
+          currency: req.body.currency,
+          allowNegative: req.body.allowNegative,
+          idempotencyKey: randomUUID(),
+        });
+        res.status(201).json(result);
+      } catch (error) {
+        next(error);
+      }
+    }
   );
 
   // List accounts
-  router.get(
-    '/accounts',
-    asyncHandler(async (req: AuthRequest, res) => {
+  router.get('/accounts', async (req: AuthRequest, res, next) => {
+    try {
       const accounts = await queries.getAccounts(req.userId!);
       res.json(accounts);
-    })
-  );
+    } catch (error) {
+      next(error);
+    }
+  });
 
   // Get account
-  router.get(
-    '/accounts/:id',
-    asyncHandler(async (req: AuthRequest, res) => {
+  router.get('/accounts/:id', async (req: AuthRequest, res, next) => {
+    try {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
-        res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
+        res.status(404).json({ error: 'Account not found' });
         return;
       }
       res.json(account);
-    })
-  );
+    } catch (error) {
+      next(error);
+    }
+  });
 
   // Record income
   router.post(
@@ -377,19 +123,21 @@ export function createLedgerRoutes(jwtSecret: string) {
       params: recordIncomeParamsSchema,
       body: recordIncomeBodySchema,
     }),
-    asyncHandler(async (req: AuthRequest, res) => {
-      const params = recordIncomeParamsSchema.parse(req.params);
-      const body = recordIncomeBodySchema.parse(req.body);
-      const result = await recordIncomeUseCase.execute({
-        userId: req.userId!,
-        accountId: params.id,
-        amountCents: body.amountCents,
-        occurredAt: new Date(body.occurredAt),
-        description: body.description,
-        idempotencyKey: randomUUID(),
-      });
-      res.json(result);
-    })
+    async (req: AuthRequest, res, next) => {
+      try {
+        const result = await recordIncomeUseCase.execute({
+          userId: req.userId!,
+          accountId: req.params.id,
+          amountCents: req.body.amountCents,
+          occurredAt: new Date(req.body.occurredAt),
+          description: req.body.description,
+          idempotencyKey: randomUUID(),
+        });
+        res.json(result);
+      } catch (error) {
+        next(error);
+      }
+    }
   );
 
   // Record expense
@@ -399,38 +147,43 @@ export function createLedgerRoutes(jwtSecret: string) {
       params: recordExpenseParamsSchema,
       body: recordExpenseBodySchema,
     }),
-    asyncHandler(async (req: AuthRequest, res) => {
-      const params = recordExpenseParamsSchema.parse(req.params);
-      const body = recordExpenseBodySchema.parse(req.body);
-      const result = await recordExpenseUseCase.execute({
-        userId: req.userId!,
-        accountId: params.id,
-        amountCents: body.amountCents,
-        occurredAt: new Date(body.occurredAt),
-        description: body.description,
-        idempotencyKey: randomUUID(),
-      });
-      res.json(result);
-    })
+    async (req: AuthRequest, res, next) => {
+      try {
+        const result = await recordExpenseUseCase.execute({
+          userId: req.userId!,
+          accountId: req.params.id,
+          amountCents: req.body.amountCents,
+          occurredAt: new Date(req.body.occurredAt),
+          description: req.body.description,
+          idempotencyKey: randomUUID(),
+        });
+        res.json(result);
+      } catch (error) {
+        next(error);
+      }
+    }
   );
 
   // Transfer
   router.post(
     '/transfers',
     validate({ body: transferBodySchema }),
-    asyncHandler(async (req: AuthRequest, res) => {
-      const body = transferBodySchema.parse(req.body);
-      const result = await transferUseCase.execute({
-        userId: req.userId!,
-        fromAccountId: body.fromAccountId,
-        toAccountId: body.toAccountId,
-        amountCents: body.amountCents,
-        occurredAt: new Date(body.occurredAt),
-        description: body.description,
-        idempotencyKey: randomUUID(),
-      });
-      res.json(result);
-    })
+    async (req: AuthRequest, res, next) => {
+      try {
+        const result = await transferUseCase.execute({
+          userId: req.userId!,
+          fromAccountId: req.body.fromAccountId,
+          toAccountId: req.body.toAccountId,
+          amountCents: req.body.amountCents,
+          occurredAt: new Date(req.body.occurredAt),
+          description: req.body.description,
+          idempotencyKey: randomUUID(),
+        });
+        res.json(result);
+      } catch (error) {
+        next(error);
+      }
+    }
   );
 
   // Get movements
@@ -440,21 +193,27 @@ export function createLedgerRoutes(jwtSecret: string) {
       params: getMovementsParamsSchema,
       query: getMovementsQuerySchema,
     }),
-    asyncHandler(async (req: AuthRequest, res) => {
-      const params = getMovementsParamsSchema.parse(req.params);
-      const query = getMovementsQuerySchema.parse(req.query);
-      const result = await queries.getMovements(params.id, req.userId!, query.limit, query.cursor);
-      res.json(result);
-    })
+    async (req: AuthRequest, res, next) => {
+      try {
+        const result = await queries.getMovements(
+          req.params.id,
+          req.userId!,
+          req.query.limit as number | undefined,
+          req.query.cursor as number | undefined
+        );
+        res.json(result);
+      } catch (error) {
+        next(error);
+      }
+    }
   );
 
   // CSV export
-  router.get(
-    '/accounts/:id/movements.csv',
-    asyncHandler(async (req: AuthRequest, res) => {
+  router.get('/accounts/:id/movements.csv', async (req: AuthRequest, res, next) => {
+    try {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
-        res.status(404).json({ code: 'NOT_FOUND', message: 'Account not found' });
+        res.status(404).json({ error: 'Account not found' });
         return;
       }
 
@@ -478,8 +237,10 @@ export function createLedgerRoutes(jwtSecret: string) {
         `attachment; filename="movements-${account.name.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.csv"`
       );
       res.send(csvHeader + csvRows);
-    })
-  );
+    } catch (error) {
+      next(error);
+    }
+  });
 
   return router;
 }

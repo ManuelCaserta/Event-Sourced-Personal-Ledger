@@ -11,6 +11,7 @@ import { Projector } from '../../db/projector.js';
 import { ProjectionsRepo } from '../../db/projectionsRepo.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { NotFoundError } from '../../../application/errors.js';
 import { randomUUID } from 'crypto';
 
 const createAccountBodySchema = z.object({
@@ -107,8 +108,7 @@ export function createLedgerRoutes(jwtSecret: string) {
     try {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
-        res.status(404).json({ error: 'Account not found' });
-        return;
+        throw new NotFoundError('Account not found');
       }
       res.json(account);
     } catch (error) {
@@ -213,8 +213,7 @@ export function createLedgerRoutes(jwtSecret: string) {
     try {
       const account = await queries.getAccount(req.params.id, req.userId!);
       if (!account) {
-        res.status(404).json({ error: 'Account not found' });
-        return;
+        throw new NotFoundError('Account not found');
       }
 
       const { movements } = await queries.getMovements(req.params.id, req.userId!, 10000);

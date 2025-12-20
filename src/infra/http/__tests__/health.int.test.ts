@@ -21,6 +21,10 @@ describeDb('GET /healthz', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
   });
+
+  // Note: To test DB-down scenario (500 response), manually stop the database
+  // and verify: GET /healthz returns 500 {code:'DB_UNAVAILABLE', message:'Database unavailable'}
+  // within ~2 seconds.
 });
 
 

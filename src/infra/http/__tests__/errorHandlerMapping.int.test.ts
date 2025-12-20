@@ -102,6 +102,34 @@ describeDb('HTTP error mapping (ErrorResponse)', () => {
     expect(res.body).toHaveProperty('code', 'INSUFFICIENT_BALANCE');
     expect(res.body).toHaveProperty('message');
   });
+
+  it('maps CurrencyMismatchError -> 400 CURRENCY_MISMATCH', async () => {
+    // Create EUR account
+    const eurAccountRes = await request(app)
+      .post('/api/accounts')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'EUR Account', currency: 'EUR', allowNegative: false });
+    const eurAccountId = eurAccountRes.body.accountId;
+
+    const res = await request(app)
+      .post('/api/transfers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: accountId1, // USD
+        toAccountId: eurAccountId, // EUR
+        amountCents: 100,
+        occurredAt: new Date().toISOString(),
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('code', 'CURRENCY_MISMATCH');
+    expect(res.body).toHaveProperty('message');
+
+    // Cleanup
+    await pool.query('DELETE FROM read_movements WHERE account_id = $1', [eurAccountId]);
+    await pool.query('DELETE FROM read_accounts WHERE account_id = $1', [eurAccountId]);
+    await pool.query('DELETE FROM events WHERE aggregate_id = $1', [eurAccountId]);
+  });
 });
 
 

@@ -22,6 +22,29 @@ const options: swaggerJsdoc.Options = {
           bearerFormat: 'JWT',
         },
       },
+      schemas: {
+        ErrorResponse: {
+          type: 'object',
+          required: ['code', 'message'],
+          properties: {
+            code: {
+              type: 'string',
+              description: 'Error code identifier',
+              example: 'INVALID_AMOUNT',
+            },
+            message: {
+              type: 'string',
+              description: 'Human-readable error message',
+              example: 'Amount must be greater than zero',
+            },
+            details: {
+              type: 'object',
+              description: 'Additional error details (optional)',
+              additionalProperties: true,
+            },
+          },
+        },
+      },
     },
     tags: [
       { name: 'Auth', description: 'Authentication endpoints' },

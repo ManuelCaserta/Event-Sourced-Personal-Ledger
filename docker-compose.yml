@@ -16,6 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ledger_app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/ledger_db
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-min-32-chars}
+      PORT: 3000
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm run db:migrate:prod && node dist/infra/http/server.js"
+
 volumes:
   postgres_data:
 
